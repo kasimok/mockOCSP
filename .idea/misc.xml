@@ -10,11 +10,6 @@
       </list>
     </option>
   </component>
-  <component name="PerforceDirect.Settings">
-    <option name="pathToExec" value="/usr/local/bin/p4" />
-    <option name="PATH_TO_P4V" value="/usr/local/bin/p4vc" />
-    <option name="USE_PERFORCE_JOBS" value="true" />
-  </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
     <OptionsSetting value="true" id="Remove" />
