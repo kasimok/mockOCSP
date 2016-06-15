@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.client.RestTemplate;
 import sun.security.provider.certpath.OCSP;
 import sun.security.x509.*;
 
@@ -62,6 +63,7 @@ public class OCSPIntegrationTest {
     private int serverPort;
 
     private URI OCSP_URL;
+    private URI OCSP_MODE_URL;
 
     private static final int MIN_PORT_NUMBER = 0;
     private static final int MAX_PORT_NUMBER = 65535;
@@ -71,7 +73,8 @@ public class OCSPIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        OCSP_URL = new URI("http://localhost:" + serverPort + "/verify");
+        OCSP_URL = new URI("http://localhost:" + serverPort + "/verify-mocked-good");
+        OCSP_MODE_URL = new URI("http://localhost:" + serverPort + "/set-response-mode");
         RandomAccessFile raf = new RandomAccessFile("certs/client/client.cer.pem", "r");
         byte[] buf = new byte[(int) raf.length()];
         raf.readFully(buf);
@@ -94,7 +97,20 @@ public class OCSPIntegrationTest {
         System.out.println(resp);
     }
 
-
+    @Test
+    public void testChangeMode() throws Exception{
+        RestTemplate restTemplate = new RestTemplate();
+        String resp = restTemplate.getForObject(OCSP_MODE_URL.toString(),String.class);
+        MatcherAssert.assertThat(resp,CoreMatchers.containsString("AUTO"));
+        resp = restTemplate.getForObject(OCSP_MODE_URL.toString()+"?mode=1",String.class);
+        MatcherAssert.assertThat(resp,CoreMatchers.containsString("GOOD"));
+        resp = restTemplate.getForObject(OCSP_MODE_URL.toString()+"?mode=2",String.class);
+        MatcherAssert.assertThat(resp,CoreMatchers.containsString("REVOKED"));
+        resp = restTemplate.getForObject(OCSP_MODE_URL.toString()+"?mode=3",String.class);
+        MatcherAssert.assertThat(resp,CoreMatchers.containsString("UNKNOWN"));
+        resp = restTemplate.getForObject(OCSP_MODE_URL.toString()+"?mode=bad",String.class);
+        MatcherAssert.assertThat(resp,CoreMatchers.containsString("Illegal"));
+    }
 
     /**
      * Method to test a port is available.
@@ -172,7 +188,6 @@ public class OCSPIntegrationTest {
                 if (isa.isUnresolved()) {
                     //fix JNLP popup error issue
                     throw new UnknownHostException("Host Unknown:" + isa.toString());
-
                 }
 
             }

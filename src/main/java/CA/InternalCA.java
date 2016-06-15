@@ -17,13 +17,19 @@
  */
 package CA;
 
+import org.apache.commons.io.IOUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -46,17 +52,13 @@ public class InternalCA {
     /**
      * Method to read private key from file.
      *
-     * @param fileName
+     * @param inputStream
      *
      * @return
      */
-    private PrivateKey readPrivateKey(String fileName) {
+    private PrivateKey readPrivateKey(InputStream inputStream) {
         try {
-            RandomAccessFile raf = new RandomAccessFile(fileName, "r");
-            byte[] buf = new byte[(int) raf.length()];
-            raf.readFully(buf);
-            raf.close();
-            PKCS8EncodedKeySpec kspec = new PKCS8EncodedKeySpec(buf);
+            PKCS8EncodedKeySpec kspec = new PKCS8EncodedKeySpec(IOUtils.toByteArray(inputStream));
             KeyFactory kf = KeyFactory.getInstance("RSA");
             PrivateKey privKey = kf.generatePrivate(kspec);
             return privKey;
@@ -69,24 +71,14 @@ public class InternalCA {
     /**
      * Method to read cert from file.
      *
-     * @param fileName
+     * @param inputStream
      *
      * @return
      */
-    private X509CertificateHolder readCert(String fileName) {
-        byte[] b;
-        try {
-            RandomAccessFile f = new RandomAccessFile(fileName, "r");
-            b = new byte[(int) f.length()];
-            f.read(b);
-            f.close();
-        } catch (Exception e) {
-            LOG.info("Cannot load Internal CA certificate file: " + e.getMessage());
-            return null;
-        }
+    private X509CertificateHolder readCert(InputStream inputStream) {
         X509CertificateHolder x509CertificateHolder;
         try {
-            x509CertificateHolder = new X509CertificateHolder(b);
+            x509CertificateHolder = new X509CertificateHolder(IOUtils.toByteArray(inputStream));
         } catch (Exception e) {
             LOG.info("Cannot parse Internal CA certificate: " + e.getMessage());
             return null;
@@ -95,12 +87,16 @@ public class InternalCA {
     }
 
     @Bean
-    public X509CertificateHolder x509CertificateHolder() {
-        return readCert("certs/root/ca.cer.der");
+    public X509CertificateHolder x509CertificateHolder() throws IOException {
+        //Get file from resources folder
+        Resource resource = new ClassPathResource("certs/root/ca.cer.der");
+        return readCert(resource.getInputStream());
     }
 
     @Bean
-    public PrivateKey privateKey() {
-        return readPrivateKey("certs/root/ca-key.pkcs8");
+    public PrivateKey privateKey() throws IOException {
+        //Get file from resources folder
+        Resource resource = new ClassPathResource("certs/root/ca-key.pkcs8");
+        return readPrivateKey(resource.getInputStream());
     }
 }
